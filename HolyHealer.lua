@@ -1,34 +1,23 @@
 -- HolyHealer Addon
--- Combines Flash of Light, Holy Light, Holy Shock, Holy Strike, and Aura management functions into one script.
+-- Combines Flash of Light, Holy Light, Holy Shock, and Holy Strike functions into one script.
 -- Extend by Drokin
 
 -- Create a frame to handle events
-HolyHealerFrame = CreateFrame("Frame");
+local HolyHealerFrame = CreateFrame("Frame");
 
 -- Global variables to store spell indices
-HOLY_SHOCK_INDEX = nil;
-CRUSADER_STRIKE_INDEX = nil;
+local HOLY_SHOCK_INDEX = nil;
+local CRUSADER_STRIKE_INDEX = nil;
 
 -- Configuration for buffs
-REQUIRED_BUFF_ICON = 51309; -- Icon for Holy Judgement buff
-SEAL_OF_WISDOM_ICON = 51746; -- Icon for Seal of Wisdom
-
--- Configuration for auras (priority list)
-AURA_PRIORITY = {
-    {name = "Concentration Aura", icon = 19746},
-    {name = "Sanctity Aura", icon = 20218},
-    {name = "Devotion Aura", icon = 10293},
-    {name = "Retribution Aura", icon = 10301},
-    {name = "Frost Resistance Aura", icon = 19898},
-    {name = "Fire Resistance Aura", icon = 19900},
-    {name = "Shadow Resistance Aura", icon = 19896}
-};
+local REQUIRED_BUFF_ICON = 51309; -- Icon for Holy Judgement buff
+local SEAL_OF_WISDOM_ICON = 51746; -- Icon for Seal of Wisdom
 
 -- Debug variable, default to off
-DEBUG_MODE = false;
+local DEBUG_MODE = false;
 
 -- Debug function to print messages if debug mode is on
-function DebugPrint(message)
+local function DebugPrint(message)
     if DEBUG_MODE then
         DEFAULT_CHAT_FRAME:AddMessage("HH DEBUG: " .. message);
     end
@@ -39,51 +28,58 @@ HolyHealerFrame:RegisterEvent("ADDON_LOADED");
 
 -- Set up the event handler
 HolyHealerFrame:SetScript("OnEvent", function()
-    if event == "ADDON_LOADED" and arg1 == "HolyHealer" then
-        DebugPrint("HolyHealer addon loaded successfully.");
+    if event then
+        --if event == "ADDON_LOADED" and arg1 == "HolyHealer" then
+        DebugPrint(arg1);
+        DebugPrint("event triggered");
+        -- Function to cache spell indices when the addon loads
+        local function CacheSpellIndices()
+            local numSpells = GetNumSpellTabs();
+            for tabIndex = 1, numSpells do
+                local _, _, offset, numSpellsInTab = GetSpellTabInfo(tabIndex);
+                for spellIndex = offset + 1, offset + numSpellsInTab do
+                    local name = GetSpellName(spellIndex, BOOKTYPE_SPELL);
+                    if name == "Holy Shock" then
+                        HOLY_SHOCK_INDEX = spellIndex;
+                    elseif name == "Crusader Strike" then
+                        CRUSADER_STRIKE_INDEX = spellIndex;
+                    end
+                    if HOLY_SHOCK_INDEX and CRUSADER_STRIKE_INDEX then break; end
+                end
+                if HOLY_SHOCK_INDEX and CRUSADER_STRIKE_INDEX then break; end
+            end
+
+            -- Debug messages for addon load and spellbook check
+            DebugPrint("HolyHealer addon has loaded successfully.");
+
+            if HOLY_SHOCK_INDEX then
+                DebugPrint("Holy Shock found in spellbook.");
+            else
+                DebugPrint("Holy Shock not found in spellbook.");
+            end
+
+            if CRUSADER_STRIKE_INDEX then
+                DebugPrint("Crusader Strike found in spellbook.");
+            else
+                DebugPrint("Crusader Strike not found in spellbook.");
+            end
+        end
+
+        -- Call this function when the addon loads
         CacheSpellIndices();
+        --end
     end
 end);
-
--- Function to cache spell indices when the addon loads
-function CacheSpellIndices()
-    local numSpells = GetNumSpellTabs();
-    for tabIndex = 1, numSpells do
-        local _, _, offset, numSpellsInTab = GetSpellTabInfo(tabIndex);
-        for spellIndex = offset + 1, offset + numSpellsInTab do
-            local name = GetSpellName(spellIndex, BOOKTYPE_SPELL);
-            if name == "Holy Shock" then
-                HOLY_SHOCK_INDEX = spellIndex;
-            elseif name == "Crusader Strike" then
-                CRUSADER_STRIKE_INDEX = spellIndex;
-            end
-            if HOLY_SHOCK_INDEX and CRUSADER_STRIKE_INDEX then break; end
-        end
-        if HOLY_SHOCK_INDEX and CRUSADER_STRIKE_INDEX then break; end
-    end
-
-    if HOLY_SHOCK_INDEX then
-        DebugPrint("Holy Shock found in spellbook.");
-    else
-        DebugPrint("Holy Shock not found in spellbook.");
-    end
-
-    if CRUSADER_STRIKE_INDEX then
-        DebugPrint("Crusader Strike found in spellbook.");
-    else
-        DebugPrint("Crusader Strike not found in spellbook.");
-    end
-end
 
 -- Utility Functions
 
 -- Checks if a unit is valid, friendly, alive, and connected
-function IsHealable(unit)
+local function IsHealable(unit)
     return UnitExists(unit) and UnitIsFriend("player", unit) and not UnitIsDeadOrGhost(unit) and UnitIsConnected(unit);
 end
 
 -- Checks if a unit has a specific buff by its icon
-function HasBuffWithIcon(unit, iconPath)
+local function HasBuffWithIcon(unit, iconPath)
     local i = 1;
     while true do
         local name, _, icon = UnitBuff(unit, i);
@@ -95,12 +91,12 @@ function HasBuffWithIcon(unit, iconPath)
 end
 
 -- Checks if a unit is within a given range using interact distance
-function IsWithinRange(unit, rangeType)
+local function IsWithinRange(unit, rangeType)
     return CheckInteractDistance(unit, rangeType);
 end
 
 -- Finds the lowest health unit below a health threshold in the group
-function GetLowestHealthUnit(healthThreshold, spellName, rangeType)
+local function GetLowestHealthUnit(healthThreshold, spellName, rangeType)
     local lowestUnit = nil;
     local lowestHealthPct = 100;
 
@@ -140,7 +136,7 @@ function GetLowestHealthUnit(healthThreshold, spellName, rangeType)
 end
 
 -- Counts the number of players below a health threshold within 10 yards
-function GetPlayersBelowHealthThresholdInRange(minHP)
+local function GetPlayersBelowHealthThresholdInRange(minHP)
     local count = 0;
 
     -- Check raid members
@@ -176,36 +172,63 @@ function GetPlayersBelowHealthThresholdInRange(minHP)
     return count;
 end
 
--- Ensure an aura is active based on priority list
-function aCheckAura()
-    local currentAuraIndex = nil
-    for i, aura in ipairs(AURA_PRIORITY) do
-        if HasBuffWithIcon("player", aura.icon) then
-            currentAuraIndex = i
-            break
+-- Function to cache spell indices when the addon loads
+local function CacheSpellIndices()
+    local numSpells = GetNumSpellTabs();
+    for tabIndex = 1, numSpells do
+        local _, _, offset, numSpellsInTab = GetSpellTabInfo(tabIndex);
+        for spellIndex = offset + 1, offset + numSpellsInTab do
+            local name = GetSpellName(spellIndex, BOOKTYPE_SPELL);
+            if name == "Holy Shock" then
+                HOLY_SHOCK_INDEX = spellIndex;
+            elseif name == "Crusader Strike" then
+                CRUSADER_STRIKE_INDEX = spellIndex;
+            end
+            if HOLY_SHOCK_INDEX and CRUSADER_STRIKE_INDEX then break; end
         end
+        if HOLY_SHOCK_INDEX and CRUSADER_STRIKE_INDEX then break; end
     end
-    if not currentAuraIndex then
-        -- No aura active, cast the highest priority (Concentration Aura)
-        CastSpellByName(AURA_PRIORITY[1].name, "player")
-        DebugPrint(AURA_PRIORITY[1].name .. " --> player (No aura active)")
-        return false
-    else
-        -- An aura is active, cast the next one in the priority list
-        local nextAuraIndex = currentAuraIndex + 1
-        if nextAuraIndex > 7 then
-            nextAuraIndex = 1
-        end
-        CastSpellByName(AURA_PRIORITY[nextAuraIndex].name, "player")
-        DebugPrint(AURA_PRIORITY[nextAuraIndex].name .. " --> player (Switching from " .. AURA_PRIORITY[currentAuraIndex].name .. ")")
-        return false
+    if not HOLY_SHOCK_INDEX then DEFAULT_CHAT_FRAME:AddMessage("Holy Shock not found in spellbook."); end
+    if not CRUSADER_STRIKE_INDEX then DEFAULT_CHAT_FRAME:AddMessage("Crusader Strike not found in spellbook."); end
+end
+
+-- Call this function when the addon loads
+CacheSpellIndices();
+
+-- Debug function to print messages if debug mode is on
+local function DebugPrint(message)
+    if DEBUG_MODE then
+        DEFAULT_CHAT_FRAME:AddMessage("HH DEBUG: " .. message);
     end
 end
 
+-- Function to handle slash commands
+local function HolyHealer_OnSlashCommand(arg)
+    --local command, arg = strsplit(" ", msg);
+    command = command and strlower(command) or nil;
+
+    if command == "debug" then
+        if arg == "on" then
+            DEBUG_MODE = true;
+            DEFAULT_CHAT_FRAME:AddMessage("HH: Debug mode is now ON.");
+        elseif arg == "off" then
+            DEBUG_MODE = false;
+            DEFAULT_CHAT_FRAME:AddMessage("HH: Debug mode is now OFF.");
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("HH: Usage: /hh debug <on/off>");
+        end
+    else
+        DEFAULT_CHAT_FRAME:AddMessage("HH: Unknown command. Use /hh debug <on/off>");
+    end
+end
+
+-- Register slash command
+SLASH_HOLYHEALER1 = "/hh";
+SlashCmdList["HOLYHEALER"] = HolyHealer_OnSlashCommand;
+
 -- Ensure melee buffs (Seal of Wisdom and Holy Judgement) are active
 function aMeleeBuffs()
-    --if aCheckAura() then return true end
-	if not HasBuffWithIcon("player", SEAL_OF_WISDOM_ICON) then
+    if not HasBuffWithIcon("player", SEAL_OF_WISDOM_ICON) then
         CastSpellByName("Seal of Wisdom", "player");
         DebugPrint("Seal of Wisdom --> player (No seal active)");
         return false;
@@ -314,7 +337,7 @@ function aCastHolyStrike(HSminHP, HSminTargets)
                             return false;
                         end
                     else
-                        --DebugPrint("Crusader Strike : on cooldown");
+                        --DebugPrint("Crusader Strike ... on cooldown");
                         return false;
                     end
                 else
@@ -334,12 +357,13 @@ function aCastHolyStrike(HSminHP, HSminTargets)
 end
 
 function MasterHealSequence()
-    DebugPrint("MasterHealSequence called");
-    if aCheckAura() then return true end
+    --DebugPrint("----------------")
+    
     if aHealWithHL(25) then return true end
     if aHealWithHS(90) then return true end
     if aCastHolyStrike(90, 4) then return true end
     if aHealWithHL(45) then return true end
     if aHealWithFoL(90) then return true end
+    
     return false -- If none of the spells were cast
 end
