@@ -1,0 +1,8 @@
+## Interface: 11200
+## Title: HolyHealer
+## Notes: An addon to assist paladins with healing in melee by automatically selecting targets and determining which spell decisions to make.
+## Author: Drokin
+## Version: 1.0
+## SavedVariables: HolyHealer
+
+HolyHealer.lua
