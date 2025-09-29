@@ -32,7 +32,7 @@ Following Function can be used in macros:
 
 ```/run aMeleeBuffs()```
 
---Ensures "Seal of Wisdom" and "Holy Judgement" (ID 51309) buffs are active. Casts "Seal of Wisdom" on the player if missing, then "Judgement" on an enemy target if "Holy Judgement" is missing and a valid target exists.
+--Ensures "Seal of Wisdom" and "Holy Judgement" (ID 51309) buffs are active. Casts "Seal of Wisdom" on the player if missing, then "Judgement" on an enemy target if "Holy Judgement" is missing and a valid target exists.  If you wish to manage the casts of Holy Light manually, use this in your macro instead of /run aHealWithHL(30)
 
 As part of same macro, you can stack the above to automate all the scripts in successtion.  Recommendation is not to SPAM the macro, but press it as close to GCD as possible.  Due to nampower (which is required for scripts range finding to work), you do not want to queue spell by spamming the button too fast.  The following will cast emergency Holy Light (at players below 30 or 45 HP), use Holy Shock on cooldown, and will optimize the use of Holy Strike, or Crusader strike (to reset holy shock) on cooldown.  Otherwise it will spam Flash of Light and auto-attack
 
