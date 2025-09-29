@@ -14,7 +14,7 @@ Following Function can be used in macros:
 ```/run aHealWithHL(30)```
 
 -- casts Holy Light if a target in range below 30% health is detected AND if Holy Judgement buff is active (you can change the number 30 to any other threshold you desire)
--- this function also includes the aMeleeBuffs function to apply Seal of Wisdom to self, and Judge target to apply Holy Judgement to target.  If you do not wish the macro to cast Holy Light (because you prefer to manually cast it), you can set the threshole for it's casting very low like /run ahealWithHL(1).  This sill still manage Seal of Wisdom and attempt to judge when Holy Judgement is not up.
+-- this function also includes the aMeleeBuffs function to apply Seal of Wisdom to self, and Judge target to apply Holy Judgement to target.
 -- be aware that Holy Light is mana intensive, and setting the threshold too high may cause you to cast Holy Light often.
 
 ```/run aHealWithHS(90) ```
